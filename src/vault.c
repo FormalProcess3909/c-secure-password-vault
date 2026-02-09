@@ -1,13 +1,26 @@
 /*
  * vault.c
  *
- * Implements user-facing vault commands (help/init/etc.).
+ * Implements user-facing vault command handlers such as help and init.
  *
- * Security boundary:
- * - Command handlers should not print or log sensitive credential material.
- * - Sensitive operations will be centralized in dedicated modules later (crypto/storage).
+ * Responsibilities:
+ * - Provide CLI command functionality.
+ * - Initialize vault storage and directory structure.
+ *
+ * Security Boundaries:
+ * - Command handlers must not expose or print credential data.
+ * - Vault initialization creates storage with restricted permissions.
+ * - Existing vault files must never be overwritten automatically.
+ *
+ * Assumptions:
+ * - Vault storage resides in the local "data/" directory.
+ * - Additional encryption and credential handling will be implemented in separate modules.
  */
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <string.h>
 #include <stdio.h>
 #include "vault.h"
 
@@ -34,11 +47,47 @@ void vault_help() {
 }
 
 /*
- * Initialize local vault storage (directory + file).
+ * Initialize vault storage.
  *
- * Security note: no secrets should be created or stored during init.
+ * Behavior:
+ * - Creates the "data/" directory if it does not exist.
+ * - Creates an empty vault database file.
+ * - Prevents overwriting existing vault storage.
+ *
+ * Security Notes:
+ * - Directory is created with owner-only permissions (0700).
+ * - This function does not store credentials or encryption keys.
  */
 
 void vault_init() {
-    printf("init: not implemented yet\n");
+
+    const char *dir = "data";
+    const char *file = "data/vault.db";
+
+    // Attempt to create data directory
+    if (mkdir(dir, 0700) == -1) {
+        if (errno != EEXIST) {
+            printf("Error creating data directory: %s\n", strerror(errno));
+            return;
+        }
+    }
+
+    // Check if vault file already exists
+    FILE *fp = fopen(file, "r");
+    if (fp != NULL) {
+        fclose(fp);
+        printf("Vault already initialized.\n");
+        return;
+    }
+
+    // Create vault file
+    fp = fopen(file, "w");
+    if (fp == NULL) {
+        printf("Error creating vault file: %s\n", strerror(errno));
+        return;
+    }
+
+    fclose(fp);
+
+    printf("Vault initialized successfully.\n");
 }
