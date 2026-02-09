@@ -1,0 +1,13 @@
+# build outputs
+*.o
+vault
+build/
+
+# local data
+data/
+*.vault
+*.db
+
+# editor / OS
+.vscode/
+.DS_Store
