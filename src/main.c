@@ -41,6 +41,11 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    if (strcmp(argv[1], "list") == 0) {
+        vault_list();
+        return 0;
+    }
+
     printf("Unknown command: %s\n", argv[1]);
     return 1;
 }

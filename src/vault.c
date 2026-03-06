@@ -44,6 +44,8 @@ void vault_help() {
     printf("Commands:\n");
     printf("  help\n");
     printf("  init\n");
+    printf("  add\n");
+    printf("  list\n");
 }
 
 /*
@@ -132,4 +134,37 @@ void vault_add(int argc, char *argv[]) {
     fclose(fp);
 
     printf("Credential added successfully\n");
+}
+
+/*
+ * Display stored credentials from the vault database.
+ *
+ * Behavior:
+ * - Opens the vault database file in read mode.
+ * - Reads entries line-by-line until EOF.
+ * - Prints each line exactly as stored in the database.
+ *
+ * Stored credential format:
+ *   service|username|password
+ *
+ * Security Note:
+ * Credentials are currently stored in plaintext. Future versions
+ * of the vault will encrypt stored entries before writing them.
+ */
+
+void vault_list() {
+    FILE *fp = fopen("data/vault.db", "r");
+
+    if (fp == NULL) {
+        printf("Error: could not open vault database\n");
+        return;
+    }
+
+    char line[256];
+
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        printf("%s", line);
+    }
+
+    fclose(fp);
 }

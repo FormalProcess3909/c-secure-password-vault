@@ -38,8 +38,10 @@ The project is currently in its early development stage.
 Implemented functionality includes:
 
 - basic CLI interface
-- `vault help` command
-- `vault init` command
+- `vault help` command for usage information
+- `vault init` command to initialize secure vault storage
+- `vault add <service> <username> <password>` to store credentials
+- `vault list` to display stored credentials
 - creation of a local vault storage directory
 - defensive checks to avoid overwriting existing vault data
 - modular C project structure (`src/` and `include/`)
@@ -101,6 +103,18 @@ Initialize the vault storage:
 ```
 
 This creates a local `data/` directory and an empty vault database file.
+
+Add a credential to the vault:
+
+```bash
+./vault add github username password
+```
+
+List stored credentials:
+
+```bash
+./vault list
+```
 
 ---
 
