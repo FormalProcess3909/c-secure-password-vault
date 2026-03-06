@@ -91,3 +91,45 @@ void vault_init() {
 
     printf("Vault initialized successfully.\n");
 }
+
+/*
+ * Add a credential entry to the vault database.
+ *
+ * Expected CLI usage:
+ *   vault add <service> <username> <password>
+ *
+ * Behavior:
+ * - Validates the number of arguments provided.
+ * - Opens the vault database file in append mode.
+ * - Writes the credential as a single line in the format:
+ *
+ *   service|username|password
+ *
+ * Security Note:
+ * Credentials are currently stored in plaintext. Future versions
+ * of the vault will encrypt stored entries before writing them.
+ */
+
+void vault_add(int argc, char *argv[]) {
+    if (argc != 5) {
+        printf("Usage: vault add <service> <username> <password>\n");
+        return;
+    }
+
+    char *service = argv[2];
+    char *username = argv[3];
+    char *password = argv[4];
+
+    FILE *fp = fopen("data/vault.db", "a");
+
+    if (fp == NULL) {
+        printf("Error: could not open vault database\n");
+        return;
+    }
+
+    fprintf(fp, "%s|%s|%s\n", service, username, password);
+
+    fclose(fp);
+
+    printf("Credential added successfully\n");
+}
