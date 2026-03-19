@@ -46,6 +46,14 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    if (strcmp(argv[1], "get") == 0) {
+        if (argc < 3) {
+            printf("Usage: vault get <service>\n");
+            return 1;
+        }
+        return vault_get(argv[2]);
+    }
+
     printf("Unknown command: %s\n", argv[1]);
     return 1;
 }

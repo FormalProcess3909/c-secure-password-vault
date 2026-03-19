@@ -6,5 +6,6 @@ void vault_help();
 void vault_init();
 void vault_add(int argc, char *argv[]);
 void vault_list();
+int vault_get(const char *service);
 
 #endif

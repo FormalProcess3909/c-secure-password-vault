@@ -25,6 +25,36 @@
 #include "vault.h"
 
 /*
+ * Check whether a vault entry line matches the requested service name.
+ *
+ * Behavior:
+ * - Copies the input line into a temporary buffer.
+ * - Extracts the first field using "|" as the delimiter.
+ * - Compares the extracted service field to the requested service name.
+ *
+ * Returns:
+ * - 1 if the service names match
+ * - 0 if they do not match or the line is malformed
+ *
+ * Security Note:
+ * The original input line is not modified. Tokenization is performed
+ * on a temporary copy of the line buffer.
+ */
+
+static int service_matches(const char *line, const char *service) {
+    char line_copy[256];
+    strcpy(line_copy, line);
+
+    char *token = strtok(line_copy, "|");
+
+    if (token == NULL) {
+        return 0;
+    }
+
+    return strcmp(token, service) == 0;
+}
+
+/*
  * Print a startup banner.
  *
  * Security note: prints only static text.
@@ -46,6 +76,7 @@ void vault_help() {
     printf("  init\n");
     printf("  add\n");
     printf("  list\n");
+    printf("  get\n");
 }
 
 /*
@@ -167,4 +198,48 @@ void vault_list() {
     }
 
     fclose(fp);
+}
+
+/*
+ * Retrieve and display a credential entry for a specific service.
+ *
+ * Behavior:
+ * - Opens the vault database file in read mode.
+ * - Reads entries line-by-line until EOF.
+ * - Compares each entry's service field against the requested service name.
+ * - Prints the first matching entry exactly as stored in the database.
+ *
+ * Returns:
+ * - 0 if a matching service is found
+ * - 1 if the service is not found or the database cannot be opened
+ *
+ * Stored credential format:
+ *   service|username|password
+ *
+ * Security Note:
+ * Credentials are currently stored and displayed in plaintext.
+ * Future versions should minimize credential exposure and add encryption.
+ */
+
+int vault_get(const char *service) {
+    FILE *fp = fopen("data/vault.db", "r");
+
+    if (fp == NULL) {
+        printf("Error: could not open vault database\n");
+        return 1;
+    }
+
+    char line[256];
+
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        if (service_matches(line, service)) {
+            printf("%s", line);
+            fclose(fp);
+            return 0;
+        }
+    }
+
+    fclose(fp);
+    printf("Service not found\n");
+    return 1;
 }

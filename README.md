@@ -42,6 +42,7 @@ Implemented functionality includes:
 - `vault init` command to initialize secure vault storage
 - `vault add <service> <username> <password>` to store credentials
 - `vault list` to display stored credentials
+- `vault get <service>` to retrieve a stored credential
 - creation of a local vault storage directory
 - defensive checks to avoid overwriting existing vault data
 - modular C project structure (`src/` and `include/`)
@@ -54,7 +55,7 @@ Future development may include:
 
 - encrypted credential storage
 - master password authentication
-- add / retrieve credential commands
+- delete and update credential commands
 - secure memory handling
 - improved file permission enforcement
 - automated tests
@@ -90,6 +91,14 @@ make clean
 
 ## Usage
 
+### Available Commands
+
+- `vault help` — display usage information  
+- `vault init` — initialize vault storage  
+- `vault add <service> <username> <password>` — store credentials  
+- `vault list` — list all stored credentials  
+- `vault get <service>` — retrieve credentials for a service
+
 Display available commands:
 
 ``` bash
@@ -114,6 +123,17 @@ List stored credentials:
 
 ```bash
 ./vault list
+```
+
+Get a stored credential:
+
+```bash
+./vault get github
+```
+
+```text
+Example output:
+github|steve|mypassword
 ```
 
 ---
