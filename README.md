@@ -44,6 +44,7 @@ Implemented functionality includes:
 - `vault list` to display stored credentials
 - `vault get <service>` to retrieve a stored credential
 - `vault delete <service>` to remove stored credentials
+- `vault update <service> <username> <password>` to update stored credentials
 - creation of a local vault storage directory
 - defensive checks to avoid overwriting existing vault data
 - modular C project structure (`src/` and `include/`)
@@ -56,7 +57,6 @@ Future development may include:
 
 - encrypted credential storage
 - master password authentication
-- delete and update credential commands
 - secure memory handling
 - improved file permission enforcement
 - automated tests
@@ -100,6 +100,7 @@ make clean
 - `vault list` — list all stored credentials  
 - `vault get <service>` — retrieve credentials for a service
 - `vault delete <service>` to remove stored credentials
+- `vault update <service> <username> <password>` to update stored credentials
 
 Display available commands:
 
@@ -147,6 +148,17 @@ Delete a stored credential:
 ```text
 Example output:
 Service deleted successfully
+```
+
+Update a stored credential:
+
+```bash
+./vault update github user newpassword
+```
+
+```text
+Example output:
+Service updated successfully
 ```
 
 ---

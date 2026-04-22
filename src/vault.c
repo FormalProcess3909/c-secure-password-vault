@@ -78,6 +78,7 @@ void vault_help() {
     printf("  list\n");
     printf("  get\n");
     printf("  delete\n");
+    printf("  update\n");
 }
 
 /*
@@ -302,6 +303,73 @@ int vault_delete(const char *service) {
         remove("data/vault.db");
         rename("data/vault.tmp", "data/vault.db");
         printf("Service deleted successfully\n");
+        return 0;
+    } else {
+        remove("data/vault.tmp");
+        printf("Service not found\n");
+        return 1;
+    }
+}
+
+/*
+ * Update credential entries for a specific service.
+ *
+ * Behavior:
+ * - Opens the vault database file in read mode.
+ * - Creates a temporary file to store updated entries.
+ * - Reads entries line-by-line until EOF.
+ * - Replaces any entry matching the requested service name
+ *   with a new entry containing the updated username and password.
+ * - Writes all non-matching entries unchanged.
+ * - Replaces the original database file with the temporary file if a match is found.
+ *
+ * Returns:
+ * - 0 if at least one matching service entry is updated
+ * - 1 if the service is not found or an error occurs
+ *
+ * Stored credential format:
+ *   service|username|password
+ *
+ * Security Note:
+ * This operation rewrites the vault file using a temporary file to
+ * avoid partial data loss in case of failure.
+ */
+
+int vault_update(const char *service, const char *username, const char *password) {
+    FILE *src = fopen("data/vault.db", "r");
+    FILE *tmp = fopen("data/vault.tmp", "w");
+
+    if (src == NULL) {
+        printf("Error: could not open vault database\n");
+        return 1;
+    }
+
+    if (tmp == NULL) {
+        printf("Error: could not create temporary file\n");
+        fclose(src);
+        return 1;
+    }
+
+    char line[256];
+    int found = 0;
+
+    while (fgets(line, sizeof(line), src) != NULL) {
+        if (service_matches(line, service)) {
+            fprintf(tmp, "%s|%s|%s\n", service, username, password);
+            found++;
+            continue;
+        }
+
+        fputs(line, tmp);
+    }
+
+    fclose(src);
+    fclose(tmp);
+
+    if (found) {
+        remove("data/vault.db");
+        rename("data/vault.tmp", "data/vault.db");
+        printf("Service updated successfully\n");
         return 0;
     } else {
         remove("data/vault.tmp");

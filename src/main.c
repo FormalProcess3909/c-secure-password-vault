@@ -62,6 +62,14 @@ int main(int argc, char *argv[]) {
         return vault_delete(argv[2]);
     }
 
+    if (strcmp(argv[1], "update") == 0) {
+        if (argc != 5) {
+            printf("Usage: vault update <service> <username> <password>\n");
+            return 1;
+        }
+        return vault_update(argv[2], argv[3], argv[4]);
+    }
+
     printf("Unknown command: %s\n", argv[1]);
     return 1;
 }
