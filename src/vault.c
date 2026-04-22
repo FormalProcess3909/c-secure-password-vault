@@ -8,7 +8,8 @@
  * - Initialize vault storage and directory structure.
  *
  * Security Boundaries:
- * - Command handlers must not expose or print credential data.
+ * - Sensitive credential handling is currently limited and credentials 
+ * are stored in plaintext during Phase 1 development.
  * - Vault initialization creates storage with restricted permissions.
  * - Existing vault files must never be overwritten automatically.
  *
@@ -54,21 +55,11 @@ static int service_matches(const char *line, const char *service) {
     return strcmp(token, service) == 0;
 }
 
-/*
- * Print a startup banner.
- *
- * Security note: prints only static text.
- */
-
 void vault_banner() {
     printf("Secure Password Vault\n");
 }
 
-/*
- * Print CLI usage instructions.
- *
- * Security note: prints only static strings and does not access vault storage.
- */
+// Display CLI usage instructions.
 void vault_help() {
     printf("Usage: vault <command>\n");
     printf("Commands:\n");
@@ -77,6 +68,8 @@ void vault_help() {
     printf("  add\n");
     printf("  list\n");
     printf("  get\n");
+    printf("  delete\n");
+    printf("  update\n");
 }
 
 /*
@@ -87,7 +80,7 @@ void vault_help() {
  * - Creates an empty vault database file.
  * - Prevents overwriting existing vault storage.
  *
- * Security Notes:
+ * Security Note:
  * - Directory is created with owner-only permissions (0700).
  * - This function does not store credentials or encryption keys.
  */
@@ -133,13 +126,15 @@ void vault_init() {
  *
  * Behavior:
  * - Validates the number of arguments provided.
- * - Opens the vault database file in append mode.
+ * - Opens the vault database file in read mode to check for an existing service.
+ * - Rejects duplicate service names.
+ * - Reopens the vault database file in append mode if the service is unique.
  * - Writes the credential as a single line in the format:
  *
  *   service|username|password
  *
  * Security Note:
- * Credentials are currently stored in plaintext. Future versions
+ * Credentials are currently stored in plaintext. Future versions 
  * of the vault will encrypt stored entries before writing them.
  */
 
@@ -153,7 +148,26 @@ void vault_add(int argc, char *argv[]) {
     char *username = argv[3];
     char *password = argv[4];
 
-    FILE *fp = fopen("data/vault.db", "a");
+    FILE *fp = fopen("data/vault.db", "r");
+
+    if (fp == NULL) {
+        printf("Error: could not open vault database\n");
+        return;
+    }
+
+    char line[256];
+
+    while(fgets(line, sizeof(line), fp) != NULL) {
+        if (service_matches(line, service)) {
+            fclose(fp);
+            printf("Error: service already exists\n");
+            return;
+        }
+    }
+
+    fclose(fp);
+
+    fp = fopen("data/vault.db", "a");
 
     if (fp == NULL) {
         printf("Error: could not open vault database\n");
@@ -242,4 +256,137 @@ int vault_get(const char *service) {
     fclose(fp);
     printf("Service not found\n");
     return 1;
+}
+
+/*
+ * Delete credential entries for a specific service.
+ *
+ * Behavior:
+ * - Opens the vault database file in read mode.
+ * - Creates a temporary file to store updated entries.
+ * - Reads entries line-by-line until EOF.
+ * - Skips any entry matching the requested service name.
+ * - Writes all non-matching entries to the temporary file.
+ * - Replaces the original database file with the temporary file if a match is found.
+ *
+ * Returns:
+ * - 0 if at least one matching service entry is deleted
+ * - 1 if the service is not found or an error occurs
+ *
+ * Stored credential format:
+ *   service|username|password
+ *
+ * Security Note:
+ * This operation rewrites the vault file using a temporary file to
+ * avoid partial data loss in case of failure.
+ */
+
+int vault_delete(const char *service) {
+    FILE *src = fopen("data/vault.db", "r");
+    FILE *tmp = fopen("data/vault.tmp", "w");
+
+    if (src == NULL) {
+        printf("Error: could not open vault database\n");
+        return 1;
+    }
+
+    if (tmp == NULL) {
+        printf("Error: could not create temporary file\n");
+        fclose(src);
+        return 1;
+    }
+
+    char line[256];
+    int found = 0;
+
+    while (fgets(line, sizeof(line), src) != NULL) {
+        if (service_matches(line, service)) {
+            found++;
+            continue;
+        }
+
+        fputs(line, tmp);
+    }
+
+    fclose(src);
+    fclose(tmp);
+
+    if (found) {
+        remove("data/vault.db");
+        rename("data/vault.tmp", "data/vault.db");
+        printf("Service deleted successfully\n");
+        return 0;
+    } else {
+        remove("data/vault.tmp");
+        printf("Service not found\n");
+        return 1;
+    }
+}
+
+/*
+ * Update credential entries for a specific service.
+ *
+ * Behavior:
+ * - Opens the vault database file in read mode.
+ * - Creates a temporary file to store updated entries.
+ * - Reads entries line-by-line until EOF.
+ * - Replaces each entry matching the requested service name 
+ *   with a new entry containing the updated username and password.
+ * - Writes all non-matching entries unchanged.
+ * - Replaces the original database file with the temporary file if a match is found.
+ * - Rejects duplicate service names to enforce unique entries per service.
+ *
+ * Returns:
+ * - 0 if at least one matching service entry is updated
+ * - 1 if the service is not found or an error occurs
+ *
+ * Stored credential format:
+ *   service|username|password
+ *
+ * Security Note:
+ * This operation rewrites the vault file using a temporary file to
+ * avoid partial data loss in case of failure.
+ */
+
+int vault_update(const char *service, const char *username, const char *password) {
+    FILE *src = fopen("data/vault.db", "r");
+    FILE *tmp = fopen("data/vault.tmp", "w");
+
+    if (src == NULL) {
+        printf("Error: could not open vault database\n");
+        return 1;
+    }
+
+    if (tmp == NULL) {
+        printf("Error: could not create temporary file\n");
+        fclose(src);
+        return 1;
+    }
+
+    char line[256];
+    int found = 0;
+
+    while (fgets(line, sizeof(line), src) != NULL) {
+        if (service_matches(line, service)) {
+            fprintf(tmp, "%s|%s|%s\n", service, username, password);
+            found++;
+            continue;
+        }
+
+        fputs(line, tmp);
+    }
+
+    fclose(src);
+    fclose(tmp);
+
+    if (found) {
+        remove("data/vault.db");
+        rename("data/vault.tmp", "data/vault.db");
+        printf("Service updated successfully\n");
+        return 0;
+    } else {
+        remove("data/vault.tmp");
+        printf("Service not found\n");
+        return 1;
+    }
 }
